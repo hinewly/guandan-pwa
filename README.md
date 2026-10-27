@@ -15,7 +15,7 @@ DaoBox 家族第 13 个应用：经典掼蛋纸牌竞技（单人 + AI 对手）
 - 纯前端 PWA（零服务器对战成本）：原生 HTML/CSS/JS
 - `rules.js` 规则引擎（牌型判定/比较/出牌生成）· `ai.js` 启发式 AI
 - 牌局进度 localStorage 本机存档
-- 接入 DaoBox portal 时长体系（游客 30 分/天、注册 60 分/天）
+- 接入 DaoBox portal 时长体系（游客 15 分/天、注册 30 分/天，邀好友可加时）
 
 ## 本地开发
 
