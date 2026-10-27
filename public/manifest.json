@@ -1,0 +1,16 @@
+{
+  "name": "掼蛋 · DaoBox",
+  "short_name": "掼蛋",
+  "description": "经典四人纸牌竞技掼蛋，单机 AI 对手，免费畅玩！",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b3d23",
+  "theme_color": "#0f5132",
+  "icons": [
+    { "src": "icons/icon-48.png", "sizes": "48x48", "type": "image/png" },
+    { "src": "icons/icon-64.png", "sizes": "64x64", "type": "image/png" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

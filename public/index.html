@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <script>
+    // 双域名适配：国内 daobox.net.cn / 海外 daobox.app（掼蛋暂只部署国内）
+    window.DB_HOME = location.hostname.indexOf('daobox.net.cn') !== -1
+      ? 'https://daobox.net.cn' : 'https://daobox.app';
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>掼蛋 · DaoBox 休闲棋牌</title>
+  <meta name="description" content="DaoBox 掼蛋：经典四人两两配合纸牌竞技，单机 AI 对手，免费畅玩，随时来一局。">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#0f5132">
+  <link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">🃏 掼蛋</div>
+      <div class="topbar-tools"><span class="version-badge" id="app-version">v0.1.0</span><button class="refresh-btn" id="refresh-btn" type="button" title="强制刷新 · 清缓存重载" aria-label="强制刷新">↻</button></div>
+      <div class="topbar-slot" id="db-account-slot"></div>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="hud">
+      <div class="score-box"><div class="score-label">我方级别</div><div class="score-value level-badge" id="level-us">2</div></div>
+      <div class="score-box"><div class="score-label">对方级别</div><div class="score-value level-badge them" id="level-them">2</div></div>
+      <div class="score-box"><div class="score-label" id="hand-num">第 1 局</div><button id="btn-reset-all" class="btn small" type="button">整盘重开</button></div>
+    </section>
+
+    <p class="hint" id="trick-info">点「开始」发牌</p>
+
+    <div class="table">
+      <div class="seat seat-n" id="seat-2"></div>
+      <div class="seat seat-w" id="seat-3"></div>
+      <div class="seat seat-e" id="seat-1"></div>
+      <div class="center-info">
+        <div id="game-log" class="game-log" aria-live="polite"></div>
+      </div>
+      <div class="my-zone">
+        <div class="controls">
+          <button id="btn-play" class="btn primary" type="button">出牌</button>
+          <button id="btn-pass" class="btn" type="button">要不起</button>
+          <button id="btn-hint" class="btn" type="button">提示</button>
+          <button id="btn-new-hand" class="btn small" type="button">重发本局</button>
+        </div>
+        <div id="my-hand" class="my-hand" aria-label="你的手牌"></div>
+      </div>
+    </div>
+
+    <div id="flash" class="flash hidden"></div>
+
+    <section class="tips">
+      <h2>玩法说明</h2>
+      <ul>
+        <li>四人两两配合：你和<b>北家是队友</b>，对抗东、西两家。两副牌，每人 27 张。</li>
+        <li>牌型：单张 / 对子 / 三张 / 三带二 / 顺子（五张）/ 连对（三对起）/ 钢板（两组连续三张）/ 炸弹（四张起）/ 同花顺 / 王炸弹。</li>
+        <li>大小：3&lt;4&lt;…&lt;K&lt;A&lt;2&lt;级牌&lt;小王&lt;大王。炸弹&gt;普通牌型；张数多的炸弹更大；同花顺大于五张炸弹；三王、四王炸弹最大。</li>
+        <li><b>级牌</b>即当前级别数字的牌（红色高亮）。本版本为简化规则：暂无进贡与逢人配（级牌百搭），后续版本加入。</li>
+        <li>头游方升级：单下升 2 级、双下升 3 级；打到 A 并获胜即通关。进度自动保存在本机。</li>
+        <li>本游戏完全免费，不涉及任何充值、金币或抽奖，仅供休闲娱乐。</li>
+      </ul>
+    </section>
+  </main>
+
+  <!-- 局结算弹窗 -->
+  <div id="result-modal" class="modal hidden">
+    <div class="modal-box">
+      <h3 id="result-title">本局结束</h3>
+      <div id="result-body"></div>
+      <button id="btn-next-hand" class="btn primary" type="button">下一局</button>
+    </div>
+  </div>
+
+  <!-- 时长锁定弹窗 -->
+  <div id="time-lock" class="modal hidden">
+    <div class="modal-box">
+      <h3>今日娱乐时长已用完</h3>
+      <p>游客每天 30 分钟、注册用户 60 分钟。注册登录可获更多时长。</p>
+      <a id="lock-login" class="btn primary" href="#">注册 / 登录</a>
+      <button id="lock-close" class="btn" type="button">知道了</button>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <a id="home-link" href="javascript:void(0)">← 返回 DaoBox 工具箱</a>
+    <span class="dot">·</span>
+    <a id="app-home-link" href="./?src=home">🏠 掼蛋首页</a>
+    <span class="dot">·</span>
+    <span id="contact-email"></span>
+  </footer>
+  <p class="disclaimer">本游戏为免费休闲娱乐项目，不含任何真实货币交易、赌博或抽奖功能。</p>
+
+  <script>
+    // 联系邮箱运行时拼接（防 Cloudflare obfuscate）
+    (function () {
+      var u = 'support', d = 'daobox.net.cn';
+      document.getElementById('contact-email').innerHTML =
+        '<a href="mailto:' + u + '@' + d + '">' + u + '@' + d + '</a>';
+    })();
+  </script>
+  <script src="rules.js?v=1"></script>
+  <script src="ai.js?v=1"></script>
+  <script src="app.js?v=1"></script>
+  <script>document.write('<script src="' + window.DB_HOME + '/portal.js" data-app="guandan"><\/script>');</script>
+  <script>
+    (function () {
+      var login = document.getElementById('lock-login');
+      if (login) login.href = window.DB_HOME + '/login?src=guandan';
+      var home = document.getElementById('home-link');
+      if (home) home.href = window.DB_HOME + '?src=guandan';
+    })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./service-worker.js').catch(function () {});
+      });
+    }
+  </script>
+</body>
+</html>
