@@ -1,6 +1,6 @@
 # 掼蛋首版搭建 交接
 
-- last_updated: 2026-10-27 10:05
+- last_updated: 2026-10-27 10:40
 - status: active（部署进行中）
 - version: v0.1.0
 
@@ -35,7 +35,7 @@
 - **跨项目（需告知用户后另行处理）**：daobox-home worker 登记 CHECKIN_APPS（打卡口径）+ PILL_ANCHORS（时长锚点），portal.js 的 data-app="guandan" 才能配额
 - 海外站暂缓（用户约定仅国内）
 - 二期功能：进贡还贡、逢人配（级牌百搭）、AI 增强
-- daobox-home 首页入口：跟随 cymys/彩票「娱乐类恢复展示」待办一起放开，不单独动首页
+- [x] daobox-home 首页娱乐区掼蛋入口（2026-10-27 用户明确要求单独上线，**覆盖原「跟随娱乐类恢复展示」决策**；AUDIT_MODE 已于 10-22 关闭、娱乐区已恢复展示，风险可控；daobox-home commit 仅含 public/app.js，国内已 rsync，浏览器实测卡片渲染+跳转 OK）
 
 ## 重要决策
 
