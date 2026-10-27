@@ -1,6 +1,6 @@
 # 掼蛋首版搭建 交接
 
-- last_updated: 2026-10-27 09:10
+- last_updated: 2026-10-27 09:40
 - status: active（部署进行中）
 - version: v0.1.0
 
@@ -10,9 +10,13 @@
 
 ## 当前状态
 
-代码全部完成并通过 Node 仿真 + 无头浏览器 E2E；已提交推送 GitHub；**待部署阿里云 + 时长体系登记**（等用户确认跨项目/服务器操作）。
+代码+服务器侧部署完成（systemd 8798 运行中、Caddy 已配、portal 双端已登记）；**只差 DNS A 记录**（等用户在阿里云控制台添加，加完 Caddy 自动签 HTTPS） + 手机实测。
 
 ## 最近完成
+
+- 2026-10-27 部署：rsync → /opt/guandan-pwa、systemd guandan-pwa（8798 active、本机 200）、Caddy guandan.daobox.net.cn 反代已配
+- 2026-10-27 时长体系登记：daobox-home public/portal.js PILL_ANCHORS+CHECKIN_APPS 加 guandan（commit 仅含 portal.js）；国内已 rsync /opt/daobox-home/public/portal.js；海外 CF worker 已同步部署 Version ID 0e762291-7aa3-4400-81e2-ed9558144cea（⚠️ wrangler 整包部署，把本地未提交的 handoff-data.js/todos-data.js 一起带上线，为其他任务改动，需知会）
+- 时长文案修正：核对 worker 常量 TIME_LIMITS={anon:15,user:30}（v2 定稿），页面弹窗/README/AGENTS 同步改（v0.1.1）
 
 - 规则引擎 rules.js：全部核心牌型（单/对/三/三带二/顺子/连对/钢板/炸弹/同花顺/三王四王），级牌不进顺、2 王不进顺
 - AI ai.js：启发式（领出甩小牌、跟牌最小代价、队友放行、炸弹惜用）
@@ -23,7 +27,10 @@
 
 ## 待办
 
-- 部署阿里云：/opt/guandan-pwa + systemd（拟端口 8798）+ Caddy + DNS A 记录 guandan.daobox.net.cn
+- [x] 部署阿里云：/opt/guandan-pwa + systemd 8798 + Caddy（DNS 待用户添加）
+- [ ] DNS：用户在阿里云控制台加 A 记录 `guandan` → `47.108.83.209`，之后验证 HTTPS 证书自动签发
+- [ ] 线上 E2E + 手机实测
+- [x] portal 登记（国内 rsync + 海外 CF worker 0e762291）
 - **跨项目（需告知用户后另行处理）**：daobox-home worker 登记 CHECKIN_APPS（打卡口径）+ PILL_ANCHORS（时长锚点），portal.js 的 data-app="guandan" 才能配额
 - 海外站暂缓（用户约定仅国内）
 - 二期功能：进贡还贡、逢人配（级牌百搭）、AI 增强
