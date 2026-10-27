@@ -1,6 +1,6 @@
 # 掼蛋首版搭建 交接
 
-- last_updated: 2026-10-27 09:40
+- last_updated: 2026-10-27 10:05
 - status: active（部署进行中）
 - version: v0.1.0
 
@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-代码+服务器侧部署完成（systemd 8798 运行中、Caddy 已配、portal 双端已登记）；**只差 DNS A 记录**（等用户在阿里云控制台添加，加完 Caddy 自动签 HTTPS） + 手机实测。
+✅ 国内站已上线：https://guandan.daobox.net.cn（HTTPS 200，线上 E2E 全通过：27 张手牌/portal 胶囊/提示/出牌/AI 流转）。剩手机实测。
 
 ## 最近完成
 
@@ -28,8 +28,9 @@
 ## 待办
 
 - [x] 部署阿里云：/opt/guandan-pwa + systemd 8798 + Caddy（DNS 待用户添加）
-- [ ] DNS：用户在阿里云控制台加 A 记录 `guandan` → `47.108.83.209`，之后验证 HTTPS 证书自动签发
-- [ ] 线上 E2E + 手机实测
+- [x] DNS：aliyun-cli 自动添加 A 记录 guandan→47.108.83.209（RecordId 2114879433982498816，2026-10-27）
+- [x] 线上 E2E：HTTPS 200 + 全流程通过（2026-10-27）
+- [ ] 手机实测：加主屏幕、离线、横竖屏、长局稳定性
 - [x] portal 登记（国内 rsync + 海外 CF worker 0e762291）
 - **跨项目（需告知用户后另行处理）**：daobox-home worker 登记 CHECKIN_APPS（打卡口径）+ PILL_ANCHORS（时长锚点），portal.js 的 data-app="guandan" 才能配额
 - 海外站暂缓（用户约定仅国内）
@@ -42,10 +43,15 @@
 - 简化规则一期：无进贡/无百搭（已写进页面玩法说明）
 - 升级规则：单下 +2、双下 +3；A 级获胜即通关
 
+## 重要基础设施（2026-10-27 建立，全家族可用）
+
+- **aliyun-cli 已配置**（RAM 子账号 daobox-dns，仅 AliyunDNSFullAccess 权限）：以后加/改 DNS 解析直接 `aliyun alidns AddDomainRecord ...`，不需要用户配合登录。凭据在 ~/.aliyun/，不进 git。
+- 浏览器驱动方案：playwright MCP 挂掉时，可用 /tmp/aliyun-driver.mjs 模式（有头 Chrome + stdin 指令）让用户窗口内登录后接管操作；登录态存 ~/.codex/aliyun-profile。
+
 ## 注意事项
 
 - 掼蛋属棋牌敏感类：上线初期首页不放入口（与 cymys 同模式）
-- server 端口用 8798（xiaoxiaole 8796 / chengyu 8797 已占用），部署时确认不冲突
+- - ⚠️ **端口事故复盘**：8798 其实是华容道的（workspace 清单没记录），首版部署抢了它的端口导致 guandan 域名吐华容道内容。已改 8799 并修复 Caddy。**部署新应用前必须 ssh 查 `ss -tlnp` 确认端口空闲，并检查 Caddyfile 现有站点**
 - rules.js 的 beats() 兼容裸 play 和 {cards,play} 包装两种入参
 - 收墩条件是 passes>=3 **或** 回合转回赢墩者，二者缺一不可（跳过打完玩家时 passes 不足 3）
 

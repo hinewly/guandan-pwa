@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const PUBLIC_DIR = path.join(ROOT, "public");
-const PORT = parseInt(process.env.PORT || "8798", 10);
+const PORT = parseInt(process.env.PORT || "8799", 10);
 const HOST = process.env.HOST || "127.0.0.1";
 
 const MIME = {
