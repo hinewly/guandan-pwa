@@ -3,7 +3,7 @@
   "use strict";
   var R = window.GuanDanRules;
   var AI = window.GuanDanAI;
-  var APP_VERSION = "v0.1.0";
+  var APP_VERSION = "v0.2.0";
   var SAVE_KEY = "dbguandan-save-v1";
   var LEVEL_SEQ = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   var SUIT_SYM = { D: "♦", C: "♣", H: "♥", S: "♠" };
@@ -31,7 +31,9 @@
       passFlags: [false, false, false, false],
       finishOrder: [],
       nextLeader: 0,
-      matchOver: false
+      matchOver: false,
+      lastFinishOrder: null,   // 上一局打完顺序（进贡用）
+      tributePending: null     // 人类还贡等待中 {pairs,leader,idx,to}（进行中时非 null）
     };
   }
 
@@ -62,14 +64,88 @@
     state.table = [null, null, null, null];
     state.passFlags = [false, false, false, false];
     state.finishOrder = [];
-    state.turn = state.nextLeader;
-    state.leaderSeat = state.nextLeader;
     selected.clear();
     hintIdx = 0;
-    log("第 " + state.handNum + " 局开始，当前级别：我方 " + state.levelTeam0 + " / 对方 " + state.levelTeam1 + "。" + SEAT_NAMES[state.turn] + "先出。");
+    log("第 " + state.handNum + " 局开始，当前级别：我方 " + state.levelTeam0 + " / 对方 " + state.levelTeam1 + "。");
+    save();
+    render();
+    startTributePhase();
+  }
+
+  /* ---------- 进贡/还贡/抗贡（官方规则，v0.2.0） ---------- */
+  // 依据上一局 finishOrder 生成贡牌方案；抗贡或首局直接进入出牌
+  function startTributePhase() {
+    var order = state.lastFinishOrder;
+    if (!order || order.length < 4 || state.handNum <= 1) { beginPlay(order ? order[0] : 0); return; }
+    var tou = order[0], erYou = order[1];
+    var winTeam = teamOf(tou);
+    var doubleDown = teamOf(erYou) === winTeam;
+    var payers = doubleDown ? [order[2], order[3]] : [order[3]];
+    var receivers = doubleDown ? null : [tou];
+    if (R.canKangGong(payers, state.hands)) {
+      log("🛡 抗贡！进贡方持有两个大王，不进贡不还贡。");
+      beginPlay(tou);
+      return;
+    }
+    var pairs;
+    if (doubleDown) {
+      pairs = R.pairDoubleTribute(tou, erYou, payers, state.hands, state.levelTeam0);
+      log("双上进贡：三游、末游分别向头游、二游进贡。");
+    } else {
+      pairs = [{ payer: order[3], receiver: tou }];
+      log("进贡：" + SEAT_NAMES[order[3]] + " 向头游进贡最大牌（红桃级牌除外）。");
+    }
+    processTributePairs(pairs, pairs[0].payer, 0);   // 进贡给头游者首圈领出
+  }
+  // 逐组处理进贡+还贡；轮到人类还贡时暂停等待点牌
+  function processTributePairs(pairs, leader, i) {
+    for (; i < pairs.length; i++) {
+      var pr = pairs[i];
+      var card = R.tributeCard(state.hands[pr.payer], state.levelTeam0);
+      removeCard(state.hands[pr.payer], card);
+      state.hands[pr.receiver].push(card);
+      sortHand(state.hands[pr.receiver]);
+      log("贡牌：" + SEAT_NAMES[pr.payer] + " → " + SEAT_NAMES[pr.receiver] + "，" + cardName(card));
+      if (pr.receiver === 0) {
+        state.tributePending = { pairs: pairs, leader: leader, idx: i, to: pr.payer };
+        save(); render();
+        flashMsg("还贡：请点选一张 ≤10 的牌还给 " + SEAT_NAMES[pr.payer] + "（不能还红桃级牌）");
+        return;
+      }
+      var back = R.returnCard(state.hands[pr.receiver], state.levelTeam0);
+      removeCard(state.hands[pr.receiver], back);
+      state.hands[pr.payer].push(back);
+      sortHand(state.hands[pr.payer]);
+      log("还贡：" + SEAT_NAMES[pr.receiver] + " 还 " + cardName(back) + " 给 " + SEAT_NAMES[pr.payer]);
+    }
+    state.tributePending = null;
+    beginPlay(leader);
+  }
+  function finishTributeReturn(card) {
+    var pend = state.tributePending;
+    state.tributePending = null;
+    removeCard(state.hands[0], card);
+    state.hands[pend.to].push(card);
+    sortHand(state.hands[pend.to]);
+    log("还贡：你 还 " + cardName(card) + " 给 " + SEAT_NAMES[pend.to]);
+    save(); render();
+    processTributePairs(pend.pairs, pend.leader, pend.idx + 1);
+  }
+  function beginPlay(leader) {
+    state.turn = leader;
+    state.leaderSeat = leader;
+    log(SEAT_NAMES[leader] + " 首圈领出。");
     save();
     render();
     scheduleAI();
+  }
+  function removeCard(hand, card) {
+    for (var i = 0; i < hand.length; i++) {
+      if (hand[i].s === card.s && hand[i].r === card.r) { hand.splice(i, 1); return; }
+    }
+  }
+  function cardName(c) {
+    return c.s === "J" ? (c.r === "b" ? "大王" : "小王") : SUIT_SYM[c.s] + c.r;
   }
 
   function sortHand(hand) {
@@ -125,7 +201,10 @@
         state.turn = winner;
         log("— " + SEAT_NAMES[winner] + " 赢得本轮，继续出牌 —");
       } else {
-        state.turn = nextAlive(winner);
+        // 接风：出完最后一手且其余几家都不要 → 对家接风领出
+        var jf = partnerOf(winner);
+        state.turn = state.hands[jf].length > 0 ? jf : nextAlive(winner);
+        log("🌬 " + SEAT_NAMES[jf] + " 接风领出！");
       }
     } else {
       state.turn = nt;
@@ -150,24 +229,32 @@
     var tou = state.finishOrder[0];
     var winTeam = teamOf(tou);
     var doubleDown = teamOf(state.finishOrder[1]) === winTeam;
-    var delta = doubleDown ? 3 : 2;
+    // 官方升级：双上（头游+二游）+3；头游+三游 +2；头游+末游 +1
+    var delta = doubleDown ? 3 : (teamOf(state.finishOrder[2]) === winTeam ? 2 : 1);
     var lv = levelOf(winTeam);
     var nl = null;
     var matchOver = false;
+    var aFailBack = false;
     if (lv === "A") {
-      matchOver = true;
+      if (doubleDown) matchOver = true;   // 打 A 必须双上才能过 A
+      else {
+        // 未双上：退回 2 重打
+        aFailBack = true;
+        if (winTeam === 0) state.levelTeam0 = "2"; else state.levelTeam1 = "2";
+      }
     } else {
       nl = nextLevelChar(lv);
       if (winTeam === 0) state.levelTeam0 = nl; else state.levelTeam1 = nl;
     }
+    state.lastFinishOrder = state.finishOrder.slice();
     state.nextLeader = tou;
     state.handNum++;
     state.matchOver = matchOver;
     save();
-    showResult(winTeam, delta, doubleDown, matchOver);
+    showResult(winTeam, delta, doubleDown, matchOver, aFailBack);
   }
 
-  function showResult(winTeam, delta, doubleDown, matchOver) {
+  function showResult(winTeam, delta, doubleDown, matchOver, aFailBack) {
     var box = $("result-modal");
     $("result-title").textContent = matchOver
       ? (winTeam === 0 ? "🏆 通关！我方打到 A！" : "对方通关，本盘失利")
@@ -176,6 +263,7 @@
     var order = state.finishOrder.map(function (s) { return SEAT_NAMES[s]; }).join(" → ");
     lines.push("打完顺序：" + order);
     lines.push(doubleDown ? "双下！升 " + delta + " 级" : "升 " + delta + " 级");
+    if (aFailBack) lines.push("⚠️ 打 A 未能双上，退回 2 级重打");
     if (!matchOver) lines.push("下一局：我方 " + state.levelTeam0 + " / 对方 " + state.levelTeam1 + " 级");
     $("result-body").innerHTML = lines.map(function (l) { return "<p>" + l + "</p>"; }).join("");
     $("btn-next-hand").textContent = matchOver ? "再来一盘（重置 2 级）" : "下一局";
@@ -211,7 +299,15 @@
 
   /* ---------- 人类操作 ---------- */
   function onCardClick(i) {
-    if (locked || state.matchOver || state.turn !== 0) return;
+    if (locked || state.matchOver) return;
+    if (state.tributePending) {
+      // 还贡选牌：≤10 且非红桃级牌
+      var c = state.hands[0][i];
+      if (!R.validReturn(c, state.levelTeam0)) { flashMsg("这张不能还贡：要 ≤10 且不是红桃级牌"); return; }
+      finishTributeReturn(c);
+      return;
+    }
+    if (state.turn !== 0) return;
     if (selected.has(i)) selected.delete(i); else selected.add(i);
     renderHand();
   }
@@ -383,6 +479,7 @@
     // 恢复中：如果有残局（手牌非空且未结束）继续；否则开新局
     var midGame = state.hands.some(function (h) { return h.length > 0; }) && !state.matchOver;
     if (!midGame) startHand();
+    else if (state.tributePending) { log("已恢复进度：请完成还贡（点选一张 ≤10 的牌）。"); render(); }
     else { log("已恢复上一局进度。"); render(); scheduleAI(); }
 
     setTimeout(function () {

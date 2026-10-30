@@ -305,10 +305,58 @@
     return out;
   }
 
+
+  /* ---------- 进贡/还贡/抗贡（官方 2025 规则，2026-10-30 参考 GuanDan Lab 补课） ---------- */
+  // 红桃级牌（逢人配）：不进贡、不能还贡
+  function isHongTaoLevel(card, level) { return card.s === "H" && card.r === level; }
+  // 进贡牌：手中最大一张（红桃级牌除外；全为红桃级牌时退而进最大一张）
+  function tributeCard(hand, level) {
+    var pool = hand.filter(function (c) { return !isHongTaoLevel(c, level); });
+    if (!pool.length) pool = hand.slice();
+    var best = pool[0];
+    for (var i = 1; i < pool.length; i++) if (orderOf(pool[i], level) > orderOf(best, level)) best = pool[i];
+    return best;
+  }
+  // 抗贡：进贡方合计两个及以上大王
+  function canKangGong(payerSeats, hands) {
+    var n = 0;
+    payerSeats.forEach(function (s) {
+      hands[s].forEach(function (c) { if (c.s === "J" && c.r === "b") n++; });
+    });
+    return n >= 2;
+  }
+  // 还贡牌：≤10 且非红桃级牌里最小的一张；全 >10 则还最小的牌
+  function returnCard(hand, level) {
+    var ok = hand.filter(function (c) { return !isHongTaoLevel(c, level) && orderOf(c, level) <= 10; });
+    if (!ok.length) ok = hand.filter(function (c) { return !isHongTaoLevel(c, level); });
+    if (!ok.length) ok = hand.slice();
+    var min = ok[0];
+    for (var i = 1; i < ok.length; i++) if (orderOf(ok[i], level) < orderOf(min, level)) min = ok[i];
+    return min;
+  }
+  // 手牌可否还此牌：≤10 且非红桃级牌
+  function validReturn(card, level) {
+    return !isHongTaoLevel(card, level) && orderOf(card, level) <= 10;
+  }
+  // 双贡配对：头游的进贡者 = 头游下家优先（同点规则），否则取牌点大的；另一家给二游
+  function pairDoubleTribute(tou, erYou, payers, hands, level) {
+    var nextOfTou = (tou + 1) % 4;
+    var a = payers[0], b = payers[1];
+    if (b === nextOfTou) { a = payers[1]; b = payers[0]; }
+    else if (a !== nextOfTou) {
+      // 都不是头游下家：点数大的进给头游
+      var big = orderOf(tributeCard(hands[payers[0]], level), level) >= orderOf(tributeCard(hands[payers[1]], level), level);
+      a = big ? payers[0] : payers[1];
+      b = a === payers[0] ? payers[1] : payers[0];
+    }
+    return [{ payer: a, receiver: tou }, { payer: b, receiver: erYou }];
+  }
+
   global.GuanDanRules = {
     SUITS: SUITS, RANKS: RANKS,
     orderOf: orderOf, makeDeck: makeDeck, shuffle: shuffle,
     classify: classify, beats: beats, responses: responses, allPlays: allPlays,
+    tributeCard: tributeCard, canKangGong: canKangGong, returnCard: returnCard, validReturn: validReturn, isHongTaoLevel: isHongTaoLevel, pairDoubleTribute: pairDoubleTribute,
     cardId: cardId
   };
 })(window);
