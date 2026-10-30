@@ -1,8 +1,8 @@
 # 掼蛋首版搭建 交接
 
-- last_updated: 2026-10-27 10:40
+- last_updated: 2026-10-30 15:40
 - status: active（部署进行中）
-- version: v0.1.0
+- version: v0.2.0
 
 ## 任务目标
 
@@ -13,6 +13,15 @@
 ✅ 国内站已上线：https://guandan.daobox.net.cn（HTTPS 200，线上 E2E 全通过：27 张手牌/portal 胶囊/提示/出牌/AI 流转）。剩手机实测。
 
 ## 最近完成
+
+- 2026-10-30 v0.2.0 进贡/还贡/抗贡+接风+升级细化（开源参考规划第 1 项，规则核对 2025 世界掼牌竞赛规则，参考 GuanDan Lab 状态机）：
+  - rules.js 纯函数：tributeCard（红桃级牌除外最大牌）/canKangGong（两大王抗贡）/returnCard（≤10 最小）/pairDoubleTribute（头游下家优先，否则大牌→头游）
+  - 单下=末游→头游；双下=三游、末游→头游、二游；进贡给头游者首圈领出；抗贡不进不还头游先出
+  - 人类还贡 UI：tributePending 状态机（存档可恢复），点牌校验 ≤10 且非红桃级牌；AI 自动还最小
+  - 接风：出完最后一手三家不要 → 对家领出（官方规则，顺带修复空手赢墩者隐患）
+  - 升级细化：双上+3 / 头游+三游+2 / 头游+末游+1；打 A 须双上，否则退回 2 重打（aFailBack 弹窗提示）
+  - 测试：rules 单测 13/13 + Node DOM-stub E2E 10/10（真实 app.js 全流程）
+  - 缓存：app.js?v=2 rules.js?v=2 + SW dbguandan-v2；commit 0b1c7e8；国内已 rsync
 
 - 2026-10-27 部署：rsync → /opt/guandan-pwa、systemd guandan-pwa（8798 active、本机 200）、Caddy guandan.daobox.net.cn 反代已配
 - 2026-10-27 时长体系登记：daobox-home public/portal.js PILL_ANCHORS+CHECKIN_APPS 加 guandan（commit 仅含 portal.js）；国内已 rsync /opt/daobox-home/public/portal.js；海外 CF worker 已同步部署 Version ID 0e762291-7aa3-4400-81e2-ed9558144cea（⚠️ wrangler 整包部署，把本地未提交的 handoff-data.js/todos-data.js 一起带上线，为其他任务改动，需知会）
