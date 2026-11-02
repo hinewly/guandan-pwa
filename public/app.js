@@ -3,7 +3,7 @@
   "use strict";
   var R = window.GuanDanRules;
   var AI = window.GuanDanAI;
-  var APP_VERSION = "v0.2.0";
+  var APP_VERSION = "v0.2.1";
   var SAVE_KEY = "dbguandan-save-v1";
   var LEVEL_SEQ = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   var SUIT_SYM = { D: "♦", C: "♣", H: "♥", S: "♠" };

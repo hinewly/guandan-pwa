@@ -25,7 +25,7 @@ body {
 .brand { font-weight: 700; font-size: 17px; }
 .topbar-tools { display: flex; align-items: center; gap: 8px; }
 .version-badge { background: #1d6a45; color: #cfe8da; font-size: 12px; padding: 2px 8px; border-radius: 10px; }
-.refresh-btn { background: none; border: 1px solid #3a7a58; color: #cfe8da; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; font-size: 14px; }
+.refresh-btn { background: none; border: 1px solid #3a7a58; color: #cfe8da; height: 26px; padding: 0 10px; border-radius: 999px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .topbar-slot { margin-left: auto; }
 
 .page { max-width: 860px; margin: 0 auto; padding: 14px; }
@@ -143,3 +143,7 @@ body {
   .table { grid-template-columns: 1fr 1fr; grid-template-areas: "n n" "w e" "c c" "me me"; }
   .card { width: 30px; height: 43px; }
 }
+
+/* v更新按钮分层：手机端缩短文案 */
+.rb-short{display:none}
+@media (max-width:480px){.rb-full{display:none}.rb-short{display:inline}}
