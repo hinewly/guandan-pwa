@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://guandan.daobox.net.cn/sitemap.xml
