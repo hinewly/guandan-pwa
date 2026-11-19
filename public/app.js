@@ -3,7 +3,7 @@
   "use strict";
   var R = window.GuanDanRules;
   var AI = window.GuanDanAI;
-  var APP_VERSION = "v0.2.1";
+  var APP_VERSION = "v0.2.2";
   var SAVE_KEY = "dbguandan-save-v1";
   var LEVEL_SEQ = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   var SUIT_SYM = { D: "♦", C: "♣", H: "♥", S: "♠" };
@@ -446,8 +446,8 @@
       if ("caches" in window) {
         caches.keys().then(function (keys) {
           return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-        }).finally(function () { location.reload(); });
-      } else location.reload();
+        }).finally(function () { location.replace(location.pathname + (location.search ? location.search + "&" : "?") + "_t=" + Date.now()); });
+      } else location.replace(location.pathname + (location.search ? location.search + "&" : "?") + "_t=" + Date.now());
     });
     $("btn-play").addEventListener("click", onPlayBtn);
     $("btn-pass").addEventListener("click", onPassBtn);
