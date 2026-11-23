@@ -1,7 +1,7 @@
 /* 掼蛋 SW v1：静态资源缓存 */
-const CACHE = "dbguandan-v8";
+const CACHE = "dbguandan-v9";
 const ASSETS = [
-  "./", "./index.html", "./style.css?v=1", "./rules.js?v=2", "./ai.js?v=1", "./app.js?v=0.2.4",
+  "./", "./index.html", "./style.css?v=1", "./rules.js?v=2", "./ai.js?v=1", "./app.js?v=0.2.5",
   "./manifest.json", "./icons/favicon.svg",
   "./icons/icon-48.png", "./icons/icon-64.png", "./icons/icon-192.png", "./icons/icon-512.png"
 ];
