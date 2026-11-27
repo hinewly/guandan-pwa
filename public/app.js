@@ -3,7 +3,7 @@
   "use strict";
   var R = window.GuanDanRules;
   var AI = window.GuanDanAI;
-  var APP_VERSION = "v0.2.6";
+  var APP_VERSION = "v0.2.7";
   var SAVE_KEY = "dbguandan-save-v1";
   var LEVEL_SEQ = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   var SUIT_SYM = { D: "♦", C: "♣", H: "♥", S: "♠" };
@@ -16,6 +16,8 @@
   var hintIdx = 0;
   var aiTimer = null;
   var locked = false;
+  var gameSync = null;
+  var initializing = true;
 
   function freshState() {
     return {
@@ -37,6 +39,39 @@
     };
   }
 
+  function collectState() {
+    return { active: state ? { state: state, updatedAt: Number(state.__savedAt) || 0 } : null };
+  }
+  function readLegacyState() {
+    var s = loadState();
+    return s ? { active: { state: s, updatedAt: 0 } } : null;
+  }
+  function mergeState(local, remote) {
+    var a = local && local.active, b = remote && remote.active;
+    if (!a) return { active: b || null };
+    if (!b) return { active: a };
+    return { active: (Number(b.updatedAt) || 0) > (Number(a.updatedAt) || 0) ? b : a };
+  }
+  function applyState(d) {
+    var active = d && d.active;
+    if (active && active.state && active.state.v === 1) state = active.state;
+  }
+  function initSync() {
+    if (gameSync || !window.DaoBoxCloud) return;
+    gameSync = window.DaoBoxCloud.create({
+      app: "guandan",
+      schemaVersion: 1,
+      readLegacy: readLegacyState,
+      collect: collectState,
+      apply: applyState,
+      merge: mergeState,
+      isEmpty: function (d) {
+        var a = d && d.active;
+        return !a || !a.state || !(a.state.hands || []).some(function (h) { return h && h.length; });
+      }
+    });
+  }
+
   function teamOf(seat) { return seat % 2 === 0 ? 0 : 1; }
   function partnerOf(seat) { return (seat + 2) % 4; }
   function levelOf(team) { return team === 0 ? state.levelTeam0 : state.levelTeam1; }
@@ -44,7 +79,12 @@
     var i = LEVEL_SEQ.indexOf(lv);
     return i < 0 || i >= LEVEL_SEQ.length - 1 ? null : LEVEL_SEQ[i + 1];
   }
-  function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {} }
+  function save() {
+    if (!state) return;
+    state.__savedAt = Date.now();
+    if (gameSync) gameSync.save(collectState());
+    else { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {} }
+  }
   function loadState() {
     try {
       var s = JSON.parse(localStorage.getItem(SAVE_KEY));
@@ -67,7 +107,7 @@
     selected.clear();
     hintIdx = 0;
     log("第 " + state.handNum + " 局开始，当前级别：我方 " + state.levelTeam0 + " / 对方 " + state.levelTeam1 + "。");
-    save();
+    if (!initializing) save();
     render();
     startTributePhase();
   }
@@ -475,12 +515,17 @@
       $("time-lock").classList.add("hidden");
     });
 
-    state = loadState() || freshState();
+    initSync();
+    var synced = gameSync ? gameSync.read() : null;
+    if (synced) applyState(synced);
+    state = state || loadState() || freshState();
     // 恢复中：如果有残局（手牌非空且未结束）继续；否则开新局
     var midGame = state.hands.some(function (h) { return h.length > 0; }) && !state.matchOver;
     if (!midGame) startHand();
     else if (state.tributePending) { log("已恢复进度：请完成还贡（点选一张 ≤10 的牌）。"); render(); }
     else { log("已恢复上一局进度。"); render(); scheduleAI(); }
+    initializing = false;
+    if (gameSync) gameSync.start();
 
     setTimeout(function () {
       try { if (window.DaoBox && window.DaoBox.timeExceeded) applyTimeLock(); } catch (e) {}
